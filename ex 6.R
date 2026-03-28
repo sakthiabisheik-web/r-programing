@@ -1,75 +1,58 @@
+library(ggplot2)
+library(dplyr)
+library(readxl)
+library(readr)
 
-if (!require(readxl)) {
-  install.packages("readxl", dependencies = TRUE)
-  library(readxl)
-}
+data <- read_excel("C:/Users/HP/Downloads/r assignment/Exp6.xlsx")
 
-if (!require(ggplot2)) {
-  install.packages("ggplot2", dependencies = TRUE)
-  library(ggplot2)
-}
+head(data)
 
-if (!require(dplyr)) {
-  install.packages("dplyr", dependencies = TRUE)
-  library(dplyr)
-}
+data$Cost <- as.numeric(data$Cost)
 
+ggplot(data, aes(x = Quarter, y = Cost, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge") +
+  facet_wrap(~Year) +
+  ggtitle("Quarterly Cost Trend by Type")
 
-data <- read_excel(file.choose())
+ggplot(data %>%
+         group_by(Year, Type) %>%
+         summarise(Total = sum(Cost), .groups = "drop"),
+       aes(x = Type, y = Total, fill = factor(Year))) +
+  geom_bar(stat = "identity", position = "dodge") +
+  ggtitle("Year Comparison by Type")
 
-cat("\nFirst 6 Rows of Dataset:\n")
-print(head(data))
+ggplot(data %>%
+         group_by(Quarter) %>%
+         summarise(Total = sum(Cost), .groups = "drop"),
+       aes(x = Quarter, y = Total, fill = Quarter)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Highest Spending Quarter")
 
-cat("\nStructure of Dataset:\n")
-str(data)
+ggplot(data %>%
+         group_by(Year, Type) %>%
+         summarise(Total = sum(Cost), .groups = "drop"),
+       aes(x = "", y = Total, fill = Type)) +
+  geom_bar(stat = "identity", width = 1) +
+  coord_polar("y") +
+  facet_wrap(~Year) +
+  ggtitle("Yearly Cost Proportion")
 
+ggplot(data, aes(x = Type, y = Cost, fill = Type)) +
+  geom_boxplot() +
+  ggtitle("Outlier Detection")
 
-numeric_cols <- names(data)[sapply(data, is.numeric)]
-categorical_cols <- names(data)[sapply(data, function(x) is.character(x) || is.factor(x))]
+max_cost <- max(data$Cost, na.rm = TRUE)
 
+ggplot(data, aes(x = Type, y = Cost, fill = Cost == max_cost)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Highest Cost Highlighted")
 
-if (length(numeric_cols) >= 1) {
-  ggplot(data, aes_string(x = numeric_cols[1])) +
-    geom_density(fill = "skyblue", alpha = 0.5) +
-    ggtitle("Density Plot") +
-    theme_minimal()
-}
+data[data$Cost == max_cost, ]
 
-
-if (length(numeric_cols) >= 1 && length(categorical_cols) >= 1) {
-  ggplot(data, aes_string(x = categorical_cols[1], 
-                          y = numeric_cols[1], 
-                          fill = categorical_cols[1])) +
-    geom_violin() +
-    ggtitle("Violin Plot") +
-    theme_minimal()
-}
-
-if (length(numeric_cols) >= 2) {
-  ggplot(data, aes_string(x = numeric_cols[1], 
-                          y = numeric_cols[2])) +
-    geom_point(color = "darkgreen") +
-    geom_smooth(method = "lm", se = FALSE, color = "red") +
-    ggtitle("Scatter Plot with Regression Line") +
-    theme_minimal()
-}
-
-
-if (length(numeric_cols) >= 2 && length(categorical_cols) >= 1) {
-  ggplot(data, aes_string(x = numeric_cols[1], 
-                          y = numeric_cols[2])) +
-    geom_point() +
-    facet_wrap(as.formula(paste("~", categorical_cols[1]))) +
-    ggtitle("Faceted Scatter Plot") +
-    theme_minimal()
-}
-
-
-if (length(categorical_cols) >= 1) {
-  ggplot(data, aes_string(x = categorical_cols[1])) +
-    geom_bar(fill = "steelblue") +
-    ggtitle("Bar Chart") +
-    theme_minimal()
-}
-
-cat("\nAdvanced Graphs Generated Successfully.\n")
+ggplot(data %>%
+         group_by(Year, Type) %>%
+         summarise(Total = sum(Cost), .groups = "drop"),
+       aes(x = Year, y = Total, color = Type, group = Type)) +
+  geom_line() +
+  geom_point(size = 3) +
+  ggtitle("Yearly Growth/Decline by Type")
