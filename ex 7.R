@@ -1,73 +1,30 @@
+library(dplyr)
+library(readxl)
+library(readr)
 
-if (!require(readxl)) {
-  install.packages("readxl", dependencies = TRUE)
-  library(readxl)
-}
+data <- read_excel("C:/Users/HP/Downloads/r assignment/Exp7-student-scores.xlsx")
 
-if (!require(dplyr)) {
-  install.packages("dplyr", dependencies = TRUE)
-  library(dplyr)
-}
+s <- select(data, first_name, math_score)
 
-if (!require(tidyr)) {
-  install.packages("tidyr", dependencies = TRUE)
-  library(tidyr)
-}
+d <- filter(data, absence_days > 10)
 
+c <- filter(data, extracurricular_activities == TRUE)
 
-data <- read_excel(file.choose())
+a <- arrange(data, math_score)
 
-cat("\nFirst 6 Rows of Dataset:\n")
-print(head(data))
+b <- arrange(data, desc(biology_score))
 
-cat("\nStructure of Dataset:\n")
-str(data)
+e <- data %>%
+  filter(chemistry_score > 80) %>%
+  select(first_name, career_aspiration, chemistry_score) %>%
+  arrange(desc(chemistry_score))
 
+f <- data %>%
+  group_by(gender) %>%
+  summarise(avgscore = mean(math_score, na.rm = TRUE), .groups = "drop")
 
-cat("\nMissing Values in Each Column:\n")
-print(colSums(is.na(data)))
+g <- data %>%
+  filter(part_time_job == TRUE) %>%
+  summarise(count = n())
 
-
-colnames(data) <- make.names(colnames(data))
-
-cat("\nColumn Names After Cleaning:\n")
-print(colnames(data))
-
-numeric_cols <- names(data)[sapply(data, is.numeric)]
-
-tidy_data <- data %>%
-  pivot_longer(
-    cols = all_of(numeric_cols),
-    names_to = "Subject",
-    values_to = "Score"
-  )
-
-cat("\nData in Long Format:\n")
-print(head(tidy_data))
-
-
-tidy_data_clean <- drop_na(tidy_data)
-
-cat("\nCleaned Tidy Data (No Missing Values):\n")
-print(head(tidy_data_clean))
-
-
-tidy_sorted <- tidy_data_clean %>%
-  arrange(desc(Score))
-
-cat("\nTop Scores:\n")
-print(head(tidy_sorted))
-
-
-subject_summary <- tidy_data_clean %>%
-  group_by(Subject) %>%
-  summarise(
-    Average_Score = mean(Score, na.rm = TRUE),
-    Maximum_Score = max(Score, na.rm = TRUE),
-    Minimum_Score = min(Score, na.rm = TRUE)
-  )
-
-cat("\nSubject-wise Summary:\n")
-print(subject_summary)
-
-cat("\nProgram Executed Successfully.\n")
+s; d; c; a; b; e; f; g
