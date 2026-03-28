@@ -1,80 +1,52 @@
+library(readxl)
+library(dplyr)
+library(tidyr)
+library(readr)
+library(openxlsx)
 
-if (!require(readxl)) {
-  install.packages("readxl", dependencies = TRUE)
-  library(readxl)
-}
+data <- read_excel("C:/Users/HP/Downloads/r assignment/EV Experiment 4 CAR sales.xlsx")
 
-if (!require(dplyr)) {
-  install.packages("dplyr", dependencies = TRUE)
-  library(dplyr)
-}
+head(data)
 
+car1 <- read_excel("C:/Users/HP/Downloads/r assignment/EV Experiment 4 CAR sales.xlsx", sheet = 1)
+car2 <- read_excel("C:/Users/HP/Downloads/r assignment/EV Experiment 4 CAR sales.xlsx", sheet = 2)
 
-car_data <- read_excel("C:/Users/HP/Downloads/EV Experiment 4 CAR sales.xlsx")
+colSums(is.na(car1))
 
-cat("\nFirst 6 Rows of Dataset:\n")
-print(head(car_data))
+car1$...2 <- as.numeric(car1$...2)
+mean(car1$...2, na.rm = TRUE)
 
-cat("\nStructure of Dataset:\n")
-str(car_data)
+car1$...4 <- as.numeric(car1$...4)
 
+mean_mileage <- mean(car1$...4, na.rm = TRUE)
+car1$...4[is.na(car1$...4)] <- mean_mileage
 
+mean(car1$...4)
 
-cat("\nMissing Values in Each Column:\n")
-print(colSums(is.na(car_data)))
+# 4. Outlier detection using IQR
+car1$...2 <- as.numeric(car1$...2)
 
-car_data_clean <- car_data %>%
-  filter(complete.cases(.))
+boxplot(car1$...2, main = "Boxplot for Price", col = "skyblue")
 
-cat("\nDataset after Removing Missing Values:\n")
-print(head(car_data_clean))
+q1 <- quantile(car1$...2, 0.25, na.rm = TRUE)
+q3 <- quantile(car1$...2, 0.75, na.rm = TRUE)
 
-car_data_imputed <- car_data %>%
-  mutate(across(where(is.numeric),
-                ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+IQR_value <- q3 - q1
 
-cat("\nDataset after Mean Imputation:\n")
-print(head(car_data_imputed))
+lower_bound <- q1 - 1.5 * IQR_value
+upper_bound <- q3 + 1.5 * IQR_value
 
+outliers <- car1$...2[car1$...2 < lower_bound | car1$...2 > upper_bound]
 
+outliers
 
-remove_outliers <- function(data, column) {
-  Q1 <- quantile(data[[column]], 0.25, na.rm = TRUE)
-  Q3 <- quantile(data[[column]], 0.75, na.rm = TRUE)
-  IQR_value <- Q3 - Q1
-  
-  lower_bound <- Q1 - 1.5 * IQR_value
-  upper_bound <- Q3 + 1.5 * IQR_value
-  
-  data[data[[column]] >= lower_bound &
-         data[[column]] <= upper_bound, ]
-}
+car1_clean <- car1 %>%
+  filter(car1$...2 >= lower_bound & car1$...2 <= upper_bound)
 
-numeric_cols <- names(car_data_clean)[sapply(car_data_clean, is.numeric)]
+car2 <- distinct(car2, ...1, .keep_all = TRUE)
 
-car_data_no_outliers <- car_data_clean
+result <- left_join(car1, car2, by = c("DATA FRAME 1" = "...1"))
 
-for (col in numeric_cols) {
-  car_data_no_outliers <- remove_outliers(car_data_no_outliers, col)
-}
+write.xlsx(result, "C:/Users/HP/Downloads/r assignment/output.xlsx")
 
-cat("\nDataset after Removing Outliers:\n")
-print(head(car_data_no_outliers))
-
-
-
-region_data <- data.frame(
-  Region = c("North", "South", "East", "West"),
-  Tax_Rate = c(5, 8, 6, 7)
-)
-
-if ("Region" %in% colnames(car_data_no_outliers)) {
-  blended_data <- left_join(car_data_no_outliers, region_data, by = "Region")
-  
-  cat("\nBlended Dataset:\n")
-  print(head(blended_data))
-} else {
-  cat("\nNo 'Region' column found for blending. Skipping join step.\n")
-}
-
-cat("\nProgram Executed Successfully.\n")
+getwd()
