@@ -1,72 +1,48 @@
+library(ggplot2)
+library(dplyr)
+library(readxl)
 
-if (!require(readxl)) {
-  install.packages("readxl", dependencies = TRUE)
-  library(readxl)
-}
+data <- read_excel("C:/Users/HP/Downloads/r assignment/Exp5.xlsx")
 
-if (!require(ggplot2)) {
-  install.packages("ggplot2", dependencies = TRUE)
-  library(ggplot2)
-}
-
-if (!require(dplyr)) {
-  install.packages("dplyr", dependencies = TRUE)
-  library(dplyr)
-}
-
-data <- read_excel("C:/Users/HP/Downloads/Exp5.xlsx")
-
-cat("\nFirst 6 Rows of Dataset:\n")
-print(head(data))
-
-cat("\nStructure of Dataset:\n")
-str(data)
+head(data)
 
 
-numeric_cols <- names(data)[sapply(data, is.numeric)]
-categorical_cols <- names(data)[sapply(data, function(x) is.character(x) || is.factor(x))]
+ggplot(data, aes(x = Quarter, y = Cost, fill = Type)) +
+  geom_bar(stat = "identity", position = "dodge")
 
 
-if (length(categorical_cols) >= 1) {
-  ggplot(data, aes_string(x = categorical_cols[1])) +
-    geom_bar(fill = "steelblue") +
-    ggtitle("Bar Chart") +
-    theme_minimal()
-}
+data %>%
+  filter(Year == 2018, Quarter == "Q3") %>%
+  group_by(Type) %>%
+  summarise(total = sum(Cost, na.rm = TRUE)) %>%
+  arrange(desc(total)) %>%
+  slice(1)
 
 
-if (length(numeric_cols) >= 1) {
-  ggplot(data, aes_string(x = numeric_cols[1])) +
-    geom_histogram(fill = "orange", bins = 10) +
-    ggtitle("Histogram") +
-    theme_minimal()
-}
+ggplot(data, aes(x = Quarter, y = Cost, fill = Type)) +
+  geom_bar(stat = "identity")
 
 
-if (length(categorical_cols) >= 1 && length(numeric_cols) >= 1) {
-  ggplot(data, aes_string(x = categorical_cols[1],
-                          y = numeric_cols[1])) +
-    geom_boxplot(fill = "lightgreen") +
-    ggtitle("Box Plot") +
-    theme_minimal()
-}
+data %>%
+  filter(Type == "Service") %>%   # FIXED case
+  filter(Cost == max(Cost, na.rm = TRUE))
+
+ggplot(data %>% filter(Type == "Service"),
+       aes(x = Quarter, y = Cost)) +
+  geom_bar(stat = "identity", fill = "pink") +
+  ggtitle("Service cost per Quarter")
 
 
-if (length(numeric_cols) >= 2) {
-  ggplot(data, aes_string(x = numeric_cols[1],
-                          y = numeric_cols[2])) +
-    geom_point(color = "red") +
-    ggtitle("Scatter Plot") +
-    theme_minimal()
-}
+ggplot(data, aes(x = Quarter, y = Cost, color = Type, group = Type)) +
+  geom_line() +
+  geom_point()
 
 
-if (length(numeric_cols) >= 2) {
-  ggplot(data, aes_string(x = numeric_cols[1],
-                          y = numeric_cols[2])) +
-    geom_line(color = "blue") +
-    ggtitle("Line Graph") +
-    theme_minimal()
-}
+ggplot(data %>% filter(Quarter == "Q4"),
+       aes(x = "", y = Cost, fill = Type)) +
+  geom_bar(stat = "identity", width = 1) +   # FIXED typo
+  coord_polar("y")
 
-cat("\nGraphs Generated Successfully.\n")
+
+ggplot(data, aes(x = Type, y = Cost)) +
+  geom_boxplot()
