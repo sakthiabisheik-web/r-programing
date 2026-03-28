@@ -1,68 +1,84 @@
+library(readxl)
+library(dplyr)
+library(ggplot2)
+library(tidyr)
 
-if (!require(readxl)) {
-  install.packages("readxl", dependencies = TRUE)
-  library(readxl)
-}
+data <- read_excel("C:/Users/HP/Downloads/r assignment/Exp8-avgscores.xlsx")
 
-if (!require(dplyr)) {
-  install.packages("dplyr", dependencies = TRUE)
-  library(dplyr)
-}
+print("Original Data Loaded")
+View(data)
 
 
-data <- read_excel(file.choose())
 
-cat("\nFirst 6 Rows of Dataset:\n")
-print(head(data))
+data[data == ""] <- NA
 
-cat("\nStructure of Dataset:\n")
+data <- data %>%
+  mutate(across(everything(), ~ suppressWarnings(as.numeric(.))))
+
+data <- data %>%
+  filter(if_any(everything(), ~ !is.na(.)))
+
+print("Cleaned Data")
 str(data)
 
-colnames(data) <- make.names(colnames(data))
 
-cat("\nCleaned Column Names:\n")
-print(colnames(data))
+avg_scores <- colMeans(data, na.rm = TRUE)
 
+print("Average Scores:")
+print(avg_scores)
 
-data <- distinct(data)
-
-cat("\nData after Removing Duplicates:\n")
-print(head(data))
-
-
-cat("\nMissing Values in Each Column:\n")
-print(colSums(is.na(data)))
+avg_df <- data.frame(
+  Subject = names(avg_scores),
+  Average = as.numeric(avg_scores)
+)
 
 
 data <- data %>%
-  mutate(across(where(is.numeric),
-                ~ ifelse(is.na(.), mean(., na.rm = TRUE), .)))
+  mutate(Total = rowSums(., na.rm = TRUE))
 
-cat("\nData after Replacing Missing Numeric Values with Mean:\n")
-print(head(data))
+print("Data with Total Column Added")
+View(data)
 
 
-remove_outliers <- function(df, column) {
-  
-  Q1 <- quantile(df[[column]], 0.25, na.rm = TRUE)
-  Q3 <- quantile(df[[column]], 0.75, na.rm = TRUE)
-  IQR_value <- Q3 - Q1
-  
-  lower_bound <- Q1 - 1.5 * IQR_value
-  upper_bound <- Q3 + 1.5 * IQR_value
-  
-  df[df[[column]] >= lower_bound & df[[column]] <= upper_bound, ]
-}
+top_students <- data %>%
+  arrange(desc(Total)) %>%
+  head(5)
 
-numeric_cols <- names(data)[sapply(data, is.numeric)]
+print("Top 5 Students:")
+print(top_students)
 
-data_no_outliers <- data
 
-for (col in numeric_cols) {
-  data_no_outliers <- remove_outliers(data_no_outliers, col)
-}
+ggplot(avg_df, aes(x = Subject, y = Average, fill = Subject)) +
+  geom_bar(stat = "identity") +
+  ggtitle("Average Marks by Subject") +
+  theme_minimal()
 
-cat("\nData after Removing Outliers:\n")
-print(head(data_no_outliers))
 
-cat("\nFinal Cleaned Dataset Ready for Analysis.\n")
+ggplot(data, aes(x = Total)) +
+  geom_histogram(bins = 10) +
+  ggtitle("Distribution of Total Marks") +
+  xlab("Total Marks") +
+  theme_minimal()
+
+
+long_data <- data %>%
+  select(-Total) %>%
+  pivot_longer(cols = everything(),
+               names_to = "Subject",
+               values_to = "Score",
+               values_drop_na = TRUE)
+
+ggplot(long_data, aes(x = Subject, y = Score, fill = Subject)) +
+  geom_boxplot() +
+  ggtitle("Outlier Detection Across Subjects") +
+  theme_minimal()
+
+
+data$StudentID <- 1:nrow(data)
+
+ggplot(data, aes(x = reorder(StudentID, Total), y = Total)) +
+  geom_bar(stat = "identity", fill = "green") +
+  coord_flip() +
+  ggtitle("Total Marks by Student") +
+  xlab("Student") +
+  theme_minimal()
